@@ -137,6 +137,24 @@ func (f FileLogger) Panic() *Event {
 func (f FileLogger) WithLevel(level zerolog.Level) *Event {
 	return &Event{f.Logger.WithLevel(level)}
 }
+func (f FileLogger) TraceEnabled() bool {
+	return f.GetLevel() <= zerolog.TraceLevel
+}
+func (f FileLogger) DebugEnabled() bool {
+	return f.GetLevel() <= zerolog.DebugLevel
+}
+func (f FileLogger) InfoEnabled() bool {
+	return f.GetLevel() <= zerolog.InfoLevel
+}
+func (f FileLogger) WarnEnabled() bool {
+	return f.GetLevel() <= zerolog.WarnLevel
+}
+func (f FileLogger) ErrorEnabled() bool {
+	return f.GetLevel() <= zerolog.ErrorLevel
+}
+func (f FileLogger) FatalEnabled() bool {
+	return f.GetLevel() <= zerolog.FatalLevel
+}
 
 //Func add func field in log
 func (e *Event) Func(funcName string) *Event {
