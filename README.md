@@ -18,7 +18,7 @@ import (
 	"github.com/RocksonZeta/logger"
 )
 
-var serviceLog = logger.NewLogger(logger.Options{Level: "debug", File: "test_log.%Y%m%d.log", ForceNewFile: true, MaxAge: 7 * 24 * time.Hour})
+var serviceLog = logger.NewLogger(logger.Options{Console:true, Level: "debug", File: "test_log.%Y%m%d.log", ForceNewFile: true, MaxAge: 7 * 24 * time.Hour})
 var log = serviceLog.Fork("good/service/users", "Users")
 
 func TestLog(t *testing.T) {

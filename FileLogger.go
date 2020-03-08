@@ -20,10 +20,12 @@ var TimeFormat = "2006-01-02 15:04:05.999"
 type FileLogger struct {
 	zerolog.Logger
 	rotateLogs *rotatelogs.RotateLogs
+	options    Options
 }
 
 type Options struct {
-	Level string
+	Console bool
+	Level   string
 	//File eg. access_log.%Y%m%d
 	File string
 	//current log file link
@@ -57,7 +59,7 @@ func rotateLogOptions(options Options) []rotatelogs.Option {
 //NewLogger
 func NewLogger(options Options) FileLogger {
 	zerolog.TimeFieldFormat = TimeFormat
-	fileLogger := FileLogger{}
+	fileLogger := FileLogger{options: options}
 	rotateLogs, err := rotatelogs.New(options.File, rotateLogOptions(options)...)
 	if err != nil {
 		fmt.Println("failed to create rotatelogs: ", err)
@@ -65,7 +67,7 @@ func NewLogger(options Options) FileLogger {
 	}
 	fileLogger.rotateLogs = rotateLogs
 
-	logger := zerolog.New(fileLogger.rotateLogs).With().Timestamp().Logger()
+	logger := zerolog.New(fileLogger).With().Timestamp().Logger()
 	level, err := zerolog.ParseLevel(options.Level)
 	if err != nil {
 		fmt.Println(err)
@@ -94,6 +96,12 @@ func (h ModuleHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 //Fork new log for module
 func (f FileLogger) Fork(pkg, mod string) FileLogger {
 	return FileLogger{Logger: f.Hook(ModuleHook{pkg: pkg, mod: mod})}
+}
+func (f FileLogger) Write(p []byte) (n int, err error) {
+	if f.options.Console {
+		fmt.Print(string(p))
+	}
+	return f.rotateLogs.Write(p)
 }
 
 type Event struct {
