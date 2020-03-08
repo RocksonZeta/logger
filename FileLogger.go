@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 	"runtime/debug"
 	"time"
 
@@ -73,7 +74,11 @@ func NewLogger(options Options) FileLogger {
 		fmt.Println(err)
 	}
 	zerolog.ErrorMarshalFunc = func(err error) interface{} {
-		return string(debug.Stack())
+		stack := debug.Stack()
+		if options.Console {
+			os.Stderr.Write(stack)
+		}
+		return string(stack)
 	}
 	fileLogger.Logger = logger.Level(level)
 	return fileLogger
