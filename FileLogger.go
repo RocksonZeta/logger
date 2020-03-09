@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -63,7 +64,7 @@ func NewLogger(options Options) FileLogger {
 	fileLogger := FileLogger{options: options}
 	rotateLogs, err := rotatelogs.New(options.File, rotateLogOptions(options)...)
 	if err != nil {
-		fmt.Println("failed to create rotatelogs: ", err)
+		fmt.Println("NewLogger failed on creating rotatelogs: ", err)
 		return fileLogger
 	}
 	fileLogger.rotateLogs = rotateLogs
@@ -71,7 +72,7 @@ func NewLogger(options Options) FileLogger {
 	logger := zerolog.New(fileLogger).With().Timestamp().Logger()
 	level, err := zerolog.ParseLevel(options.Level)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("NewLogger failed on parse level:"+options.Level, err)
 	}
 	zerolog.ErrorMarshalFunc = func(err error) interface{} {
 		stack := debug.Stack()
@@ -137,6 +138,9 @@ func (f FileLogger) Panic() *Event {
 func (f FileLogger) WithLevel(level zerolog.Level) *Event {
 	return &Event{f.Logger.WithLevel(level)}
 }
+
+// switch ----------------------
+
 func (f FileLogger) TraceEnabled() bool {
 	return f.GetLevel() <= zerolog.TraceLevel
 }
@@ -156,8 +160,19 @@ func (f FileLogger) FatalEnabled() bool {
 	return f.GetLevel() <= zerolog.FatalLevel
 }
 
+// handy fns ----------------------
+
 //Func add func field in log
 func (e *Event) Func(funcName string) *Event {
 	e.Event.Str(FuncName, funcName)
+	return e
+}
+
+func (e *Event) Interfaces(key string, values ...interface{}) *Event {
+	bs, err := json.Marshal(values)
+	if err != nil {
+		fmt.Println("Event.Interfaces - failed to marshal values:", values, " key:"+key)
+	}
+	e.Event.RawJSON(key, bs)
 	return e
 }
