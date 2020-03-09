@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -174,20 +173,15 @@ func (e *Event) Stack() *Event {
 	e.Event.Stack()
 	return e
 }
+func (e *Event) Interface(key string, value interface{}) *Event {
+	e.Event.Interface(key, value)
+	return e
+}
 
 // handy fns ----------------------
 
 //Func add func field in log
 func (e *Event) Func(funcName string) *Event {
 	e.Event.Str(FuncName, funcName)
-	return e
-}
-
-func (e *Event) Interfaces(key string, values ...interface{}) *Event {
-	bs, err := json.Marshal(values)
-	if err != nil {
-		fmt.Println("Event.Interfaces - failed to marshal values:", values, " key:"+key)
-	}
-	e.Event.RawJSON(key, bs)
 	return e
 }
