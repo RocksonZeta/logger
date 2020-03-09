@@ -160,6 +160,21 @@ func (f FileLogger) FatalEnabled() bool {
 	return f.GetLevel() <= zerolog.FatalLevel
 }
 
+// method wrap ----------------------
+
+func (e *Event) Str(key, val string) *Event {
+	e.Event.Str(key, val)
+	return e
+}
+func (e *Event) Err(err error) *Event {
+	e.Event.Err(err)
+	return e
+}
+func (e *Event) Stack() *Event {
+	e.Event.Stack()
+	return e
+}
+
 // handy fns ----------------------
 
 //Func add func field in log
