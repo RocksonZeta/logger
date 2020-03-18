@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"runtime/debug"
 	"time"
@@ -14,6 +15,7 @@ import (
 var PackageField = "package"
 var ModuleField = "module"
 var FuncName = "func"
+var LocalIpField = "localIps"
 
 //TimeFormat  default timefield format
 var TimeFormat = "2006-01-02 15:04:05.999"
@@ -22,6 +24,7 @@ type FileLogger struct {
 	zerolog.Logger
 	rotateLogs *rotatelogs.RotateLogs
 	options    Options
+	ips        []string
 }
 
 type Options struct {
@@ -34,6 +37,7 @@ type Options struct {
 	MaxAge       time.Duration
 	RotationTime time.Duration
 	ForceNewFile bool
+	ShowLocalIp  bool
 }
 
 func rotateLogOptions(options Options) []rotatelogs.Option {
@@ -60,7 +64,15 @@ func rotateLogOptions(options Options) []rotatelogs.Option {
 //NewLogger
 func NewLogger(options Options) FileLogger {
 	zerolog.TimeFieldFormat = TimeFormat
-	fileLogger := FileLogger{options: options}
+	var ips []string
+	var err error
+	if options.ShowLocalIp {
+		ips, err = localIPv4s()
+		if err != nil {
+			fmt.Println("NewLogger failed on get local IPv4s: ", err)
+		}
+	}
+	fileLogger := FileLogger{options: options, ips: ips}
 	rotateLogs, err := rotatelogs.New(options.File, rotateLogOptions(options)...)
 	if err != nil {
 		fmt.Println("NewLogger failed on creating rotatelogs: ", err)
@@ -87,6 +99,7 @@ func NewLogger(options Options) FileLogger {
 type ModuleHook struct {
 	pkg string
 	mod string
+	ips []string
 }
 
 func (h ModuleHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
@@ -96,11 +109,14 @@ func (h ModuleHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	if h.mod != "" {
 		e.Str(ModuleField, h.mod)
 	}
+	if len(h.ips) > 0 {
+		e.Strs(LocalIpField, h.ips)
+	}
 }
 
 //Fork new log for module
 func (f FileLogger) Fork(pkg, mod string) FileLogger {
-	return FileLogger{Logger: f.Hook(ModuleHook{pkg: pkg, mod: mod})}
+	return FileLogger{Logger: f.Hook(ModuleHook{pkg: pkg, mod: mod, ips: f.ips})}
 }
 func (f FileLogger) Write(p []byte) (n int, err error) {
 	if f.options.Console {
@@ -165,6 +181,10 @@ func (e *Event) Str(key, val string) *Event {
 	e.Event.Str(key, val)
 	return e
 }
+func (e *Event) Strs(key string, val []string) *Event {
+	e.Event.Strs(key, val)
+	return e
+}
 func (e *Event) Err(err error) *Event {
 	e.Event.Err(err)
 	return e
@@ -184,4 +204,20 @@ func (e *Event) Interface(key string, value interface{}) *Event {
 func (e *Event) Func(funcName string) *Event {
 	e.Event.Str(FuncName, funcName)
 	return e
+}
+
+func localIPv4s() ([]string, error) {
+	var ips []string
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ips, err
+	}
+
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+			ips = append(ips, ipnet.IP.String())
+		}
+	}
+
+	return ips, nil
 }
