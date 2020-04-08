@@ -34,8 +34,8 @@ type Options struct {
 	File string
 	//current log file link
 	FileLink     string
-	MaxAge       time.Duration
-	RotationTime time.Duration
+	MaxAge       float64 // days
+	RotationTime float64 //days
 	ForceNewFile bool
 	ShowLocalIp  bool
 }
@@ -48,10 +48,10 @@ func rotateLogOptions(options Options) []rotatelogs.Option {
 	if options.MaxAge <= 0 {
 		args = append(args, rotatelogs.WithMaxAge(-1))
 	} else {
-		args = append(args, rotatelogs.WithMaxAge(options.MaxAge))
+		args = append(args, rotatelogs.WithMaxAge(time.Duration(options.MaxAge*float64(24)*float64(time.Hour))))
 	}
 	if options.RotationTime > 0 {
-		args = append(args, rotatelogs.WithRotationTime(options.RotationTime))
+		args = append(args, rotatelogs.WithRotationTime(time.Duration(options.RotationTime*float64(24)*float64(time.Hour))))
 	} else {
 		args = append(args, rotatelogs.WithRotationTime(24*time.Hour))
 	}
@@ -119,14 +119,13 @@ func (f FileLogger) Fork(pkg, mod string) FileLogger {
 	return FileLogger{Logger: f.Hook(ModuleHook{pkg: pkg, mod: mod, ips: f.ips})}
 }
 func (f FileLogger) Write(p []byte) (n int, err error) {
+	if f.options.File == "" {
+		return 0, nil
+	}
 	if f.options.Console {
 		fmt.Print(string(p))
 	}
 	return f.rotateLogs.Write(p)
-}
-
-type Event struct {
-	*zerolog.Event
 }
 
 func (f FileLogger) Trace() *Event {
@@ -176,6 +175,9 @@ func (f FileLogger) FatalEnabled() bool {
 }
 
 // method wrap ----------------------
+type Event struct {
+	*zerolog.Event
+}
 
 func (e *Event) Str(key, val string) *Event {
 	e.Event.Str(key, val)

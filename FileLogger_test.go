@@ -3,12 +3,13 @@ package logger_test
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/RocksonZeta/logger"
 )
 
-var serviceLog = logger.NewLogger(logger.Options{Console: true, Level: "debug", File: "test_log.%Y%m%d.log", ForceNewFile: true, MaxAge: 7 * 24 * time.Hour, ShowLocalIp: true})
+var options = logger.Options{Console: true, Level: "debug", File: "test_log.%Y%m%d.log", ForceNewFile: true, MaxAge: 1, ShowLocalIp: true}
+var serviceLog logger.FileLogger = logger.NewLogger(options)
+
 var log = serviceLog.Fork("good/service/users", "Users")
 
 func TestLog(t *testing.T) {
