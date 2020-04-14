@@ -118,6 +118,9 @@ func (h ModuleHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 func (f FileLogger) Fork(pkg, mod string) FileLogger {
 	return FileLogger{Logger: f.Hook(ModuleHook{pkg: pkg, mod: mod, ips: f.ips})}
 }
+func (f FileLogger) WithPkg(pkg string) FileLogger {
+	return FileLogger{Logger: f.Hook(ModuleHook{pkg: pkg, ips: f.ips})}
+}
 func (f FileLogger) Write(p []byte) (n int, err error) {
 	if f.options.File == "" {
 		return 0, nil
@@ -183,10 +186,7 @@ func (e *Event) Str(key, val string) *Event {
 	e.Event.Str(key, val)
 	return e
 }
-func (e *Event) Strs(key string, val []string) *Event {
-	e.Event.Strs(key, val)
-	return e
-}
+
 func (e *Event) Err(err error) *Event {
 	e.Event.Err(err)
 	return e
@@ -200,12 +200,40 @@ func (e *Event) Interface(key string, value interface{}) *Event {
 	return e
 }
 
+func (e *Event) Int(key string, val int) *Event {
+	e.Event.Int(key, val)
+	return e
+}
+func (e *Event) Int32(key string, val int32) *Event {
+	e.Event.Int32(key, val)
+	return e
+}
+func (e *Event) Int64(key string, val int64) *Event {
+	e.Event.Int64(key, val)
+	return e
+}
+
 // handy fns ----------------------
 
 //Func add func field in log
 func (e *Event) Func(funcName string) *Event {
 	e.Event.Str(FuncName, funcName)
 	return e
+}
+func (e *Event) F(funcName string) *Event {
+	return e.Func(funcName)
+}
+func (e *Event) Module(name string) *Event {
+	return e.Str(ModuleField, name)
+}
+func (e *Event) M(name string) *Event {
+	return e.Module(name)
+}
+func (e *Event) Pkg(name string) *Event {
+	return e.Str(PackageField, name)
+}
+func (e *Event) P(name string) *Event {
+	return e.Pkg(name)
 }
 
 func localIPv4s() ([]string, error) {
